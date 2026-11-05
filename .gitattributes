@@ -1,0 +1,7 @@
+# Keep each script's line endings correct on every platform.
+* text=auto
+*.sh text eol=lf
+*.bat text eol=crlf
+*.task binary
+*.onnx binary
+*.png binary

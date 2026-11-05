@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AR Face Filters</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <h1>AR Face Filters</h1>
+    </div>
+    <div class="status-row" aria-live="polite">
+      <span class="pill" id="camera-pill"><i></i><span>Camera off</span></span>
+      <span class="pill" id="face-pill"><i></i><span>No face</span></span>
+      <span class="metric"><b id="fps">–</b> FPS</span>
+      <span class="metric"><b id="latency">–</b> ms</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage-column">
+      <div class="stage" id="stage">
+        <img id="video" alt="Live camera preview with the selected filter">
+        <div class="placeholder" id="placeholder">
+          <p class="placeholder-title" id="placeholder-title">Camera is off</p>
+          <p class="placeholder-text" id="placeholder-text">Press Start Camera to begin. Video stays on this computer.</p>
+        </div>
+        <div class="id-banner" id="id-banner" role="status" hidden></div>
+        <div class="notice" id="notice" hidden></div>
+        <div class="flash" id="flash"></div>
+      </div>
+
+      <div class="toolbar">
+        <button class="button primary" id="start">Start Camera</button>
+        <button class="button danger" id="stop" hidden>Stop Camera</button>
+        <div class="field">
+          <label for="camera">Camera</label>
+          <select id="camera"></select>
+          <button class="button ghost" id="find-cameras" title="Search for other connected cameras. Stop the camera first.">Find Cameras</button>
+        </div>
+        <span class="spacer"></span>
+        <button class="button ghost" id="reset">Reset</button>
+        <button class="button capture" id="capture" disabled title="Save a photo (C)">Capture Photo</button>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <section>
+        <h2>Face recognition</h2>
+        <div class="id-actions" id="id-actions">
+          <button class="button primary" id="scan-face">Scan Face</button>
+          <button class="button ghost" id="register-open">Register Face</button>
+        </div>
+
+        <form class="id-form" id="register-form" hidden>
+          <label for="profile-name">Your name</label>
+          <input id="profile-name" maxlength="40" autocomplete="off" required>
+          <p class="id-note">Saves a numeric face template on this computer, not a photo. It isn't encrypted, and you can delete it at any time.</p>
+          <div class="id-actions">
+            <button class="button primary" type="submit">Start</button>
+            <button class="button ghost" type="button" id="register-cancel">Cancel</button>
+          </div>
+        </form>
+
+        <div class="id-progress" id="id-progress" hidden>
+          <div class="id-bar"><i id="id-bar-fill"></i></div>
+          <div class="id-progress-row">
+            <span id="id-progress-text"></span>
+            <button class="link-button" id="id-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <p class="id-result" id="id-result" hidden></p>
+        <ul class="profiles" id="profiles"></ul>
+      </section>
+
+      <section>
+        <h2>Filters</h2>
+        <div class="filter-grid" id="filters"></div>
+      </section>
+
+      <section>
+        <h2>Visualization</h2>
+        <label class="switch"><input type="checkbox" id="landmarks"><span>Landmark points</span></label>
+        <label class="switch"><input type="checkbox" id="axes"><span>Head pose axes</span></label>
+      </section>
+
+      <section>
+        <h2>Head pose</h2>
+        <div class="pose">
+          <div><span>Yaw</span><b id="yaw">–</b></div>
+          <div><span>Pitch</span><b id="pitch">–</b></div>
+          <div><span>Roll</span><b id="roll">–</b></div>
+        </div>
+      </section>
+
+      <p class="privacy">Processing happens only on this computer and nothing is uploaded. Photos and face templates are saved only when you ask. Recognition has no liveness check, so a photo of you could pass it: don't use it for security.</p>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" hidden>
+    <img id="toast-image" alt="">
+    <span id="toast-text"></span>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
