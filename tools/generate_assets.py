@@ -216,27 +216,43 @@ def moustache():
     return c.finish()
 
 
-def bunny_ears():
-    """Two soft bunny ears on a headband."""
-    c = Canvas(820, 660)
-    outer = np.array([(-22, 0), (-74, -150), (-90, -320), (-60, -490), (0, -560), (60, -490), (90, -320), (74, -150), (22, 0)], float)
-    inner = np.array([(-8, -50), (-42, -170), (-52, -320), (-34, -445), (0, -500), (34, -445), (52, -320), (42, -170), (8, -50)], float)
+def red_glasses():
+    """Glossy red frames with a light rose tint, so the eyes stay visible."""
+    c = Canvas(900, 320)
+    outer_a = superellipse(235, 160, 192, 128, 3.0)
+    outer_b = superellipse(665, 160, 192, 128, 3.0)
+    inner_a = superellipse(235, 162, 162, 100, 3.0)
+    inner_b = superellipse(665, 162, 162, 100, 3.0)
+    lenses = cv2.bitwise_or(c.shape(inner_a), c.shape(inner_b))
 
-    for x, angle in ((240, -13), (580, 13)):
-        base = np.array((x, 600.0))
-        ear = rotated(spline(outer + base), angle, base)
-        centre = rotated(spline(inner + base), angle, base)
-        ear_mask = c.shape(ear)
-        c.fill(ear_mask, "#4a4550", 0.3, blur=6)
-        c.fill(ear_mask, c.gradient("#ffffff", "#d9d5de", 40, 610))
-        c.fill(c.shape(centre), c.gradient("#ffc0d0", "#ee7c9f", 60, 590))
-        # Shading deepens the inner ear towards its base.
-        c.fill(c.shape(centre), "#b33f6a", c.vertical_opacity(0.0, 0.35, 330, 590))
+    c.fill(lenses, "#ff8fa3", c.vertical_opacity(0.2, 0.08, 60, 262))
+    # Diagonal reflection, clipped to the lenses.
+    for x_base in (110, 540):
+        band = c.shape([(x_base, 262), (x_base + 40, 262), (x_base + 170, 60), (x_base + 130, 60)])
+        c.fill(cv2.bitwise_and(band, lenses), "#ffffff", 0.14)
 
-    # Headband curves over the top of the head.
-    band = spline([(120, 642), (250, 596), (410, 578), (570, 596), (700, 642)], closed=False)
-    c.fill(c.stroke(band, 26), c.gradient("#ff8fb0", "#d6497c", 570, 650))
-    c.fill(c.stroke(band - (0, 6), 6), "#ffd0de", 0.75)
+    red = c.gradient("#ff4a4a", "#a8001c", 30, 290)
+    frame = cv2.subtract(cv2.bitwise_or(c.shape(outer_a), c.shape(outer_b)), lenses)
+    c.fill(frame, red)
+    # Shine along the top of each rim.
+    for cx in (235, 665):
+        shine = spline([(cx - 150, 82), (cx - 60, 47), (cx + 60, 47), (cx + 150, 82)], closed=False)
+        c.fill(c.stroke(shine, 6), "#ffb0b0", 0.8, blur=1.5)
+
+    bridge = c.stroke(spline([(415, 138), (450, 116), (485, 138)], closed=False), 22)
+    c.fill(bridge, c.gradient("#ff4a4a", "#a8001c", 100, 160))
+    for x0, x1 in ((4, 50), (850, 896)):
+        c.fill(c.shape(superellipse((x0 + x1) / 2, 112, (x1 - x0) / 2, 18, 4)), "#a8001c")
+    return c.finish()
+
+
+def halo():
+    """A glowing golden ring that floats above the head."""
+    c = Canvas(900, 300)
+    ring = superellipse(450, 150, 400, 105, 2, 240)
+    c.fill(c.stroke(ring, 60, True), "#ffd257", 0.6, blur=12)
+    c.fill(c.stroke(ring, 36, True), c.gradient("#fff3b0", "#d99a1c", 40, 260))
+    c.fill(c.stroke(ring - (0, 7), 9, True), "#fffbe6", 0.85, blur=1)
     return c.finish()
 
 
@@ -340,15 +356,23 @@ def thumb_outline():
     return c.finish()
 
 
+def thumb_blush():
+    c = thumb_base()
+    for x in (122, 178):
+        c.fill(c.shape(superellipse(x, 138, 17, 11, 2, 40)), "#ff6f96", 0.75, blur=5)
+    return c.finish()
+
+
 def build_thumbnails(sprites):
     placements = {
         "ar_glasses": ("ar_glasses", (150, 106), 134),
         "sunglasses": ("sunglasses", (150, 106), 138),
         "moustache": ("moustache", (150, 142), 64),
-        "bunny_ears": ("bunny_ears", (150, 34), 138),
+        "red_glasses": ("red_glasses", (150, 106), 134),
+        "halo": ("halo", (150, 26), 120),
         "crown": ("crown", (150, 42), 112),
     }
-    thumbs = {"normal": thumb_base().finish(), "mesh": thumb_mesh(), "outline": thumb_outline()}
+    thumbs = {"normal": thumb_base().finish(), "blush": thumb_blush(), "mesh": thumb_mesh(), "outline": thumb_outline()}
     for key, (name, center, width) in placements.items():
         base = thumb_base().finish()
         paste(base, sprites[name], center, width)
@@ -361,8 +385,9 @@ def main():
     sprites = {
         "ar_glasses": ar_glasses(),
         "sunglasses": sunglasses(),
+        "red_glasses": red_glasses(),
         "moustache": moustache(),
-        "bunny_ears": bunny_ears(),
+        "halo": halo(),
         "crown": crown(),
     }
     for name, image in sprites.items():

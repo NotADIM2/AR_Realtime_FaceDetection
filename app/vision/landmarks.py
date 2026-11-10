@@ -16,6 +16,8 @@ IRIS_IMAGE_LEFT = 468
 IRIS_IMAGE_RIGHT = 473
 MOUTH_IMAGE_LEFT = 61
 MOUTH_IMAGE_RIGHT = 291
+# Centre of each cheek, used by the blush filter.
+CHEEKS = (50, 280)
 
 
 def _unique_segments(connections):

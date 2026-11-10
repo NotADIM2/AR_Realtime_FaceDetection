@@ -80,6 +80,52 @@ class OutlineFilter:
         cv2.polylines(roi, contours, False, (255, 235, 150), 1, cv2.LINE_AA, _SHIFT)
 
 
+class BlushFilter:
+    """Soft pink blush on both cheeks, shaped and tilted with the face."""
+
+    key = "blush"
+    label = "Blush"
+    needs_face = True
+    problem = None
+
+    _TINT = (150 / 255, 105 / 255, 1.0, 0.0)  # Pink, as BGR multipliers
+    _STRENGTH = 0.6
+    _DOWNSCALE = 4
+    # An ellipse around each cheek landmark, in eye-width units.
+    _ANGLES = np.linspace(0, 2 * np.pi, 32, endpoint=False)
+    _SHAPE = np.column_stack((0.2 * np.cos(_ANGLES), 0.13 * np.sin(_ANGLES), np.zeros_like(_ANGLES))).astype(np.float32)
+
+    def apply(self, frame, pose):
+        if pose is None:
+            return
+        cheeks = [pose.project(index, self._SHAPE) for index in lm.CHEEKS]
+        if not all(np.isfinite(c).all() for c in cheeks):
+            return
+        blur = max(pose.scale * 0.07, 1.0)
+        height, width = frame.shape[:2]
+        bounds = clipped_bounds(np.vstack(cheeks), width, height, padding=int(blur * 3) + 1)
+        if bounds is None:
+            return
+        x0, y0, x1, y1 = bounds
+        roi = frame[y0:y1, x0:x1]
+
+        # Blurring the filled ellipses gives the blush a soft edge. The mask has no
+        # fine detail, so it is built at quarter size and scaled up, which is much faster.
+        down = self._DOWNSCALE
+        mask = np.zeros((max((y1 - y0) // down, 1), max((x1 - x0) // down, 1)), np.uint8)
+        polygons = [np.round((c - (x0, y0)) / down * _FIXED).astype(np.int32) for c in cheeks]
+        cv2.fillPoly(mask, polygons, 255, cv2.LINE_AA, _SHIFT)
+        mask = cv2.GaussianBlur(mask, (0, 0), max(blur / down, 0.5))
+        mask = cv2.resize(mask, (x1 - x0, y1 - y0), interpolation=cv2.INTER_LINEAR)
+
+        # Multiply blending tints the skin while keeping its texture and shading:
+        # C = B - alpha * (B - B * color). OpenCV's saturating uint8 operations are
+        # several times faster than the same arithmetic in floating point.
+        tinted = cv2.multiply(roi, self._TINT)
+        shift = cv2.multiply(cv2.subtract(roi, tinted), cv2.merge((mask, mask, mask)), scale=self._STRENGTH / 255.0)
+        cv2.subtract(roi, shift, dst=roi)
+
+
 def draw_landmarks(frame, pose):
     """Draw every landmark as a small dot."""
     points = np.round(pose.points[:, :2] * _FIXED).astype(np.int32)

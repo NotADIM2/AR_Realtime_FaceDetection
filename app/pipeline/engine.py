@@ -214,6 +214,9 @@ class Engine:
 
     def start_enroll(self, name):
         """Begin registering a face. Raises IdentityError or ModelError."""
+        # The store checks again when saving, but this answers before any samples are taken.
+        if self.store.has_name(name):
+            raise IdentityError(f"The name {name} is already registered. Choose a different name.")
         self._begin_session(ENROLL, name)
 
     def start_scan(self):

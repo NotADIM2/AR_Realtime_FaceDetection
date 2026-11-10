@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from app.filters.drawn import MeshFilter, NormalFilter, OutlineFilter
+from app.filters.drawn import BlushFilter, MeshFilter, NormalFilter, OutlineFilter
 from app.filters.manager import FilterManager
 from app.filters.overlay import OverlayFilter, OverlaySpec
 from app.imaging.blending import composite_premultiplied, premultiply
@@ -204,9 +204,19 @@ class FilterTests(unittest.TestCase):
 
     def test_every_filter_handles_a_missing_face(self):
         frame = np.zeros((10, 10, 3), np.uint8)
-        for item in (NormalFilter(), MeshFilter(), OutlineFilter()):
+        for item in (NormalFilter(), BlushFilter(), MeshFilter(), OutlineFilter()):
             item.apply(frame, None)
         self.assertEqual(frame.sum(), 0)
+
+    def test_blush_tints_the_cheeks_pink(self):
+        frame = np.full((720, 1280, 3), 160, np.uint8)
+        BlushFilter().apply(frame, estimate_pose(synthetic_face()))
+        # synthetic_face places the cheek landmarks at the face centre.
+        blue, green, red = frame[360, 640].astype(int)
+        self.assertEqual(red, 160)
+        self.assertLess(green, blue)
+        self.assertLess(blue, 160)
+        np.testing.assert_array_equal(frame[100, 100], (160, 160, 160))
 
     def test_missing_assets_disable_filters_without_crashing(self):
         with tempfile.TemporaryDirectory() as directory:

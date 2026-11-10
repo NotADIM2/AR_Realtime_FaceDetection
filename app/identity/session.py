@@ -10,6 +10,7 @@ import numpy as np
 
 from app import config
 from app.identity.embedder import KEYPOINTS, normalize
+from app.identity.store import DuplicateProfileError
 
 ENROLL = "enroll"
 SCAN = "scan"
@@ -114,6 +115,8 @@ class CaptureSession:
             }
         try:
             store.add(self.name, template)
+        except DuplicateProfileError as exc:
+            return {"kind": "failed", "message": str(exc)}
         except OSError as exc:
             return {"kind": "failed", "message": f"Could not save your face profile: {exc}"}
         return {"kind": "enrolled", "name": self.name, "message": f"{self.name} is registered. Try Scan Face."}

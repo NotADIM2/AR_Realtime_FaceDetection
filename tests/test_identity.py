@@ -13,7 +13,7 @@ import numpy as np
 from app import config
 from app.identity.embedder import normalize
 from app.identity.session import ENROLL, SCAN, CaptureSession, sample_problem
-from app.identity.store import FaceStore
+from app.identity.store import DuplicateProfileError, FaceStore
 from app.pipeline.engine import Engine, IdentityError
 from app.vision.pose import estimate_pose
 from app.web.server import create_app
@@ -74,10 +74,31 @@ class StoreTests(StoreCase):
     def test_best_match_with_no_profiles(self):
         self.assertIsNone(self.store.best_match(template(1)))
 
-    def test_registering_a_name_again_replaces_it(self):
+    def test_a_name_can_only_be_registered_once(self):
         self.store.add("Asha", template(1))
-        self.store.add("ASHA", template(2))
-        self.assertEqual(self.store.names(), ["ASHA"])
+        with self.assertRaisesRegex(DuplicateProfileError, "name Asha is already registered"):
+            self.store.add("ASHA", template(2))
+        self.assertEqual(self.store.names(), ["Asha"])
+        self.assertTrue(self.store.has_name("asha"))
+
+    def test_a_face_can_only_be_registered_once(self):
+        base = template(1)
+        self.store.add("Asha", base)
+        with self.assertRaisesRegex(DuplicateProfileError, "already registered as Asha"):
+            self.store.add("Someone Else", nearby(base, 5))
+        self.assertEqual(FaceStore(self.path).names(), ["Asha"])
+
+    def test_a_different_face_can_register(self):
+        self.store.add("Asha", template(1))
+        self.store.add("Ravi", template(2))
+        self.assertEqual(self.store.names(), ["Asha", "Ravi"])
+
+    def test_deleting_a_profile_allows_registering_again(self):
+        base = template(1)
+        self.store.add("Asha", base)
+        self.store.remove("Asha")
+        self.store.add("Asha", nearby(base, 5))
+        self.assertEqual(self.store.names(), ["Asha"])
 
     def test_deleted_profile_is_gone_after_a_restart(self):
         self.store.add("Asha", template(1))
@@ -159,6 +180,14 @@ class SessionTests(StoreCase):
         self.assertEqual(result["kind"], "unknown")
         self.assertNotIn("name", result)
 
+    def test_registered_face_cannot_register_under_another_name(self):
+        base = template(1)
+        self.enroll("Asha", base)
+        result, _ = self.enroll("Priya", nearby(base, 50))
+        self.assertEqual(result["kind"], "failed")
+        self.assertIn("already registered as Asha", result["message"])
+        self.assertEqual(self.store.names(), ["Asha"])
+
     def test_mixed_people_are_rejected_during_registration(self):
         samples = [template(i) for i in range(config.ENROLL_SAMPLES)]
         session = CaptureSession(ENROLL, FakeEmbedder(samples), 0.0, "Asha")
@@ -204,6 +233,14 @@ class EngineIdentityTests(StoreCase):
             self.engine.start_enroll("Asha")
         self.engine.cancel_identity_session()
         self.engine.start_enroll("Asha")
+
+    def test_taken_name_is_refused_before_scanning(self):
+        self.store.add("Asha", template(1))
+        with self.engine._condition:
+            self.engine._state = "running"
+        with self.assertRaisesRegex(IdentityError, "already registered"):
+            self.engine.start_enroll("asha")
+        self.assertIsNone(self.engine.status()["identity"]["session"])
 
     def test_status_reports_profiles(self):
         self.store.add("Asha", template(1))

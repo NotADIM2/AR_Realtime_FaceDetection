@@ -9,10 +9,10 @@ It runs entirely on your computer. There are no API keys, accounts or cloud serv
 - **Live webcam:** start and stop, camera selection, FPS and processing-time display
 - **Face tracking:** 478 landmarks from MediaPipe, with live yaw, pitch and roll
 - **Face recognition:** register your face once, then Scan Face recognises you, even after restarting the app
-- **8 modes:** Normal, AR Glasses, Sunglasses, Moustache, Bunny Ears, Crown, Face Mesh, Face Outline
+- **10 modes:** Normal, AR Glasses, Sunglasses, Red Glasses, Moustache, Halo, Crown, Blush, Face Mesh, Face Outline
 - **Visualization:** optional landmark points and head pose axes
 - **Photos:** saved only when you click Capture Photo or press `C`
-- **Shortcuts:** press `1`–`8` to switch filters
+- **Shortcuts:** press `1`–`9` and `0` to switch filters
 
 ## Run it
 
@@ -56,7 +56,7 @@ On Windows, if the project is in a OneDrive folder, create the virtual environme
 
 To remove your data, click **Delete** next to your name.
 
-Registering again with the same name replaces the saved template. Good lighting and a similar setup to when you registered give the best results.
+Each person can register only once. A name that's already taken is refused, and so is a face that's already registered, even under a different name. To register again, delete your old entry first. Good lighting and a similar setup to when you registered give the best results.
 
 ### Measured accuracy
 
@@ -100,7 +100,7 @@ capture frame  ──►  mirror → detect → choose face → smooth  ──�
 | Alpha blending | `C = F' + (1 − α)·B` with premultiplied alpha | `app/imaging/blending.py` |
 | Face alignment | Similarity transform from 5 keypoints to a 112×112 image | `app/identity/embedder.py` |
 | Face template | SFace network, 128 numbers per face | `app/identity/embedder.py` |
-| Face comparison | Cosine similarity `a · b` against a threshold | `app/identity/store.py` |
+| Face comparison | Cosine similarity `a · b` against a threshold, also used to refuse duplicate registrations | `app/identity/store.py` |
 
 ### Project layout
 
@@ -129,7 +129,7 @@ Filters apply to one primary face. The largest face is chosen first and stays pr
 - Frames stay in memory. The server never writes images or landmark points to disk.
 - Photos are created only when you click Capture Photo, and your browser saves them to its download location. If that folder syncs to the cloud, your photos will sync too.
 - Recognition runs only when you click Register Face or Scan Face, never in the background.
-- Registering saves your name and a 128-number template, not a photo. The file is `face_profiles.json` in `%LOCALAPPDATA%r-face-filters` on Windows, `~/Library/Application Support/ar-face-filters` on macOS, or `~/.local/share/ar-face-filters` on Linux. It's outside the project folder, so it can't be committed by accident.
+- Registering saves your name and a 128-number template, not a photo. The file is `face_profiles.json` in `%LOCALAPPDATA%\ar-face-filters` on Windows, `~/Library/Application Support/ar-face-filters` on macOS, or `~/.local/share/ar-face-filters` on Linux. It's outside the project folder, so it can't be committed by accident.
 - The template file isn't encrypted, so anyone with access to your user account could copy it. A face template is biometric data, so treat it as sensitive.
 - The camera turns off when you click Stop, quit the app, or close the browser tab (after about 8 seconds).
 
@@ -147,7 +147,7 @@ To redraw the filter artwork, run `python -m tools.generate_assets`.
 |---|---|
 | "Could not open camera" | Close other apps using the camera, such as Zoom or Teams, then check camera access in your system privacy settings |
 | Wrong camera | Stop the camera, click Find Cameras, and choose another one |
-| Face not recognised | Check your lighting and face the camera, or click Register Face again with the same name |
+| Face not recognised | Check your lighting and face the camera, or delete your entry and click Register Face again |
 | Low FPS | Close other heavy apps and improve your lighting |
 | Filters don't appear | Face the camera with your whole face in view, in good light |
 | Port already in use | The app may already be running. Otherwise, use `--port 9000` |

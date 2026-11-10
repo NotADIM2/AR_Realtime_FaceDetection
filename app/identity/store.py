@@ -16,6 +16,10 @@ _FORMAT_VERSION = 1
 _EMBEDDING_SIZE = 128
 
 
+class DuplicateProfileError(ValueError):
+    """The name or face is already registered. The message is shown to the user."""
+
+
 class FaceStore:
     def __init__(self, path=config.FACE_STORE_PATH):
         self.path = path
@@ -61,13 +65,27 @@ class FaceStore:
         with self._lock:
             return sorted(self._profiles, key=str.casefold)
 
+    def has_name(self, name):
+        with self._lock:
+            return self._existing_name(name) is not None
+
     def add(self, name, template):
-        """Save a template. Registering an existing name replaces its template."""
+        """Save a new profile. Each name, and each person's face, can be registered only once.
+
+        Raises DuplicateProfileError if the name is taken, or if the face matches a saved
+        profile as closely as a scan would need to recognise it.
+        """
+        template = np.asarray(template, dtype=np.float64)
         with self._lock:
             existing = self._existing_name(name)
             if existing is not None:
-                del self._profiles[existing]
-            self._profiles[name] = np.asarray(template, dtype=np.float64)
+                raise DuplicateProfileError(f"The name {existing} is already registered. Choose a different name.")
+            match = self._best_match_locked(template)
+            if match is not None and match[1] >= config.FACE_MATCH_THRESHOLD:
+                raise DuplicateProfileError(
+                    f"This face is already registered as {match[0]}. To register again, delete {match[0]} first."
+                )
+            self._profiles[name] = template
             self._save()
             self.problem = None
 
@@ -83,8 +101,11 @@ class FaceStore:
     def best_match(self, template):
         """Return (name, similarity) for the closest profile, or None if there are none."""
         with self._lock:
-            if not self._profiles:
-                return None
-            scores = {name: float(np.dot(values, template)) for name, values in self._profiles.items()}
+            return self._best_match_locked(template)
+
+    def _best_match_locked(self, template):
+        if not self._profiles:
+            return None
+        scores = {name: float(np.dot(values, template)) for name, values in self._profiles.items()}
         best = max(scores, key=scores.get)
         return best, scores[best]

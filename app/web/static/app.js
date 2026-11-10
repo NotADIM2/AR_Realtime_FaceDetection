@@ -1,6 +1,8 @@
 "use strict";
 
 const POLL_MS = 500;
+// Keys 1-9 pick the first nine filters and 0 picks the tenth.
+const FILTER_KEYS = "1234567890";
 const $ = (id) => document.getElementById(id);
 
 const ui = {
@@ -80,7 +82,8 @@ function buildFilters(filters) {
     card.className = "filter-card";
     card.dataset.key = filter.key;
     card.disabled = !filter.available;
-    card.title = filter.available ? `${filter.label} (press ${position + 1})` : filter.problem;
+    const shortcut = FILTER_KEYS[position];
+    card.title = filter.available ? (shortcut ? `${filter.label} (press ${shortcut})` : filter.label) : filter.problem;
 
     const image = document.createElement("img");
     image.src = `/assets/filters/thumb_${filter.key}.png`;
@@ -424,7 +427,7 @@ document.addEventListener("keydown", (event) => {
     capturePhoto();
     return;
   }
-  const card = ui.filters.children[Number(event.key) - 1];
+  const card = ui.filters.children[FILTER_KEYS.indexOf(event.key)];
   if (card && !card.disabled) selectFilter(card.dataset.key);
 });
 
